@@ -1,1 +1,24 @@
+# Private notes (never push)
 PLAN.md
+
+# Go
+backend/bin/
+*.exe
+*.test
+*.out
+
+# Node / Vite (frontend/.gitignore covers the rest)
+node_modules/
+dist/
+
+# Env + secrets
+.env
+.env.*
+!.env.example
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
