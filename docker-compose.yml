@@ -1,0 +1,8 @@
+services:
+  # Test RTSP cameras: rtsp://localhost:8554/cam1, cam2, cam3
+  mediamtx:
+    build: ./streams
+    image: skylark-rtsp/streams:dev
+    ports:
+      - "8554:8554"
+    restart: unless-stopped

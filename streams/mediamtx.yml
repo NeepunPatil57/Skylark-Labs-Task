@@ -1,0 +1,24 @@
+# MediaMTX config for the bundled test cameras. Only RTSP is needed.
+logLevel: info
+
+rtsp: yes
+rtspAddress: :8554
+# TCP only: Docker and cloud hosts expose just the TCP port, so a client trying
+# UDP first is refused straight away and falls back instead of hanging.
+rtspTransports: [tcp]
+
+rtmp: no
+hls: no
+webrtc: no
+srt: no
+
+paths:
+  cam1:
+    runOnInit: sh /opt/streams/publish.sh
+    runOnInitRestart: yes
+  cam2:
+    runOnInit: sh /opt/streams/publish.sh
+    runOnInitRestart: yes
+  cam3:
+    runOnInit: sh /opt/streams/publish.sh
+    runOnInitRestart: yes
