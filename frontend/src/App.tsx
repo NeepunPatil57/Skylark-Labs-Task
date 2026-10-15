@@ -62,7 +62,7 @@ export default function App() {
 
   return (
     <div>
-      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-line bg-panel px-4 py-[18px] md:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-line bg-panel px-4 py-4.5 md:px-6">
         <div>
           <h1 className="text-[26px] leading-tight font-bold tracking-[0.01em] font-stretch-[72%]">Camera wall</h1>
           <p className="text-[13px] text-muted">
@@ -101,7 +101,7 @@ export default function App() {
               type="button"
               role="radio"
               aria-checked={layout === l}
-              className={`${chip} min-w-[34px] tabular-nums aria-checked:border-accent aria-checked:text-accent`}
+              className={`${chip} min-w-8.5 tabular-nums aria-checked:border-accent aria-checked:text-accent`}
               onClick={() => chooseLayout(l)}
             >
               {l === 'auto' ? 'Auto' : l}

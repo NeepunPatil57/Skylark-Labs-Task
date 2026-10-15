@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useState, type SubmitEvent } from 'react'
 import { ApiError } from '../api'
 import { control, primaryButton } from './ui'
 import { validateUrl } from '../useStreams'
@@ -14,7 +14,7 @@ export function AddStreamForm({ onAdd }: Props) {
   const [busy, setBusy] = useState(false)
   const errorId = useId()
 
-  const submit = async (e: FormEvent) => {
+  const submit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     const invalid = validateUrl(url)
     if (invalid) {
@@ -35,7 +35,7 @@ export function AddStreamForm({ onAdd }: Props) {
   }
 
   return (
-    <form className="max-w-[880px] flex-[1_1_560px]" onSubmit={submit} noValidate>
+    <form className="max-w-220 flex-[1_1_560px]" onSubmit={submit} noValidate>
       <div className="grid items-end gap-2.5 md:grid-cols-[minmax(0,1fr)_minmax(0,200px)_auto]">
         <label className="grid gap-1">
           <span className="text-xs text-muted">Stream URL</span>

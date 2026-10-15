@@ -163,7 +163,7 @@ export function StreamTile({ stream, onRemove, onRetryRegister }: Props) {
 }
 
 const iconButton =
-  'grid size-[34px] cursor-pointer place-items-center rounded-md border border-white/20 bg-panel shadow-md shadow-black/40 enabled:hover:bg-line disabled:cursor-default disabled:opacity-40'
+  'grid size-8.5 cursor-pointer place-items-center rounded-md border border-white/20 bg-panel shadow-md shadow-black/40 enabled:hover:bg-line disabled:cursor-default disabled:opacity-40'
 
 const iconProps = { width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': true } as const
 
