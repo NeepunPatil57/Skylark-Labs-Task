@@ -147,16 +147,26 @@ export function StreamTile({ stream, onRemove, onRetryRegister }: Props) {
           <h2 className="truncate text-[17px] leading-tight font-semibold tracking-wide">{stream.name}</h2>
           <p className="truncate text-[13px] text-[#c0cad5]">{stream.displayUrl}</p>
         </div>
-        <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/55 py-0.5 pr-2.5 pl-2 text-sm font-semibold tracking-wider [text-shadow:none] ${tone.text}`}
-          role="status"
-        >
+        <div className="flex shrink-0 items-center gap-1.5">
+          {state.transcoding && (
+            <span
+              className="rounded-full bg-black/55 px-2.5 py-0.5 text-sm font-semibold tracking-wider text-accent [text-shadow:none]"
+              title="This camera sends video browsers can’t play, so the server converts it to H.264. Uses more server CPU."
+            >
+              Transcoded
+            </span>
+          )}
           <span
-            className={`size-2 rounded-full ${tone.bg} ${phase === 'live' ? 'animate-tally motion-reduce:animate-none' : ''}`}
-            aria-hidden="true"
-          />
-          {phaseLabel[phase]}
-        </span>
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/55 py-0.5 pr-2.5 pl-2 text-sm font-semibold tracking-wider [text-shadow:none] ${tone.text}`}
+            role="status"
+          >
+            <span
+              className={`size-2 rounded-full ${tone.bg} ${phase === 'live' ? 'animate-tally motion-reduce:animate-none' : ''}`}
+              aria-hidden="true"
+            />
+            {phaseLabel[phase]}
+          </span>
+        </div>
       </footer>
     </article>
   )

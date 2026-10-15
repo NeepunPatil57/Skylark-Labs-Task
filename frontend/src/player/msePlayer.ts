@@ -7,11 +7,13 @@ export interface PlayerState {
   phase: PlayerPhase
   message?: string
   codec?: string
+  /** The server re-encodes this camera's video to H.264 (e.g. from H.265). */
+  transcoding?: boolean
 }
 
 type ServerMessage =
   | { type: 'status'; state: 'idle' | 'connecting' | 'live' | 'reconnecting' | 'error'; error?: string }
-  | { type: 'init'; codec: string }
+  | { type: 'init'; codec: string; transcoding?: boolean }
 
 const MAX_LATENCY = 2.5 // seconds behind the newest frame before jumping ahead
 const KEEP_BEHIND = 10 // seconds of played video kept in the buffer
@@ -35,6 +37,7 @@ export class MsePlayer {
   private queue: ArrayBuffer[] = []
   private pendingCodec?: string
   private codec?: string
+  private transcoding = false
   private retryTimer?: ReturnType<typeof setTimeout>
   private retryDelay = 1000
   private running = false
@@ -123,6 +126,7 @@ export class MsePlayer {
     if (msg.type === 'init') {
       // The init segment follows as the next binary message.
       this.pendingCodec = msg.codec
+      this.transcoding = msg.transcoding ?? false
       return
     }
     this.retryDelay = 1000
@@ -273,6 +277,7 @@ export class MsePlayer {
 
   private setState(s: PlayerState): void {
     if (!this.running && s.phase !== 'paused' && s.phase !== 'error') return
+    s = { ...s, codec: this.codec, transcoding: this.transcoding }
     this.state = s
     this.onState(s)
   }

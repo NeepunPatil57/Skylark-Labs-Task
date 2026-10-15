@@ -11,6 +11,7 @@ const TEST_CAMERAS = [
   { name: 'Test pattern', url: 'rtsp://localhost:8554/cam1' },
   { name: 'Life', url: 'rtsp://localhost:8554/cam2' },
   { name: 'Colour bars', url: 'rtsp://localhost:8554/cam3' },
+  { name: 'H.265 camera', url: 'rtsp://localhost:8554/cam4' }, // exercises transcoding
 ]
 
 const LAYOUTS = ['auto', '1', '2', '3', '4'] as const

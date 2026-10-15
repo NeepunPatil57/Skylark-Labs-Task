@@ -8,6 +8,7 @@ export interface StreamInfo {
   state: 'idle' | 'connecting' | 'live' | 'reconnecting' | 'error'
   error?: string
   codec?: string
+  transcoding: boolean
   viewers: number
 }
 

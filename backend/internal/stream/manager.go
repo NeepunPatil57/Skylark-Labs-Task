@@ -69,7 +69,7 @@ func (m *Manager) Add(rawURL, name string) (info Info, created bool, err error) 
 		id:      id,
 		name:    name,
 		url:     u.String(),
-		safeURL: u.Redacted(),
+		safeURL: MaskURL(u),
 		runner:  m.opts.Runner,
 		idle:    m.opts.IdleTimeout,
 		wg:      &m.wg,
@@ -160,6 +160,19 @@ func ValidateURL(raw string) (*url.URL, error) {
 	u.Host = strings.ToLower(u.Host)
 	u.Fragment = ""
 	return u, nil
+}
+
+// MaskURL hides credentials for display and logs: the password and the whole
+// query string, which often carries access tokens.
+func MaskURL(u *url.URL) string {
+	m := *u
+	m.RawQuery = ""
+	m.ForceQuery = false
+	s := m.Redacted()
+	if u.RawQuery != "" {
+		s += "?xxxxx"
+	}
+	return s
 }
 
 func streamID(u *url.URL) string {

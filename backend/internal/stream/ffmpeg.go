@@ -14,9 +14,28 @@ import (
 	"github.com/NeepunPatil57/Skylark-Labs-Task/backend/internal/mp4"
 )
 
+// RunOptions selects how a source is converted for the browser.
+type RunOptions struct {
+	// Transcode re-encodes to H.264 instead of copying the camera's video.
+	// Costs CPU, so it is used only for codecs browsers can't play.
+	Transcode bool
+}
+
 // Runner pulls one RTSP source until it fails or ctx is cancelled, passing
-// each fMP4 segment to onSegment. It always returns a non-nil error.
-type Runner func(ctx context.Context, url string, onSegment func(mp4.Segment)) error
+// each fMP4 segment to onSegment. If onSegment returns an error the source is
+// stopped and that error returned. It always returns a non-nil error.
+type Runner func(ctx context.Context, url string, opts RunOptions, onSegment func(mp4.Segment) error) error
+
+// ErrNeedsTranscode is returned by a segment handler to restart a source with
+// transcoding.
+var ErrNeedsTranscode = errors.New("codec not playable in browsers, switching to transcoding")
+
+// BrowserPlayable reports whether browsers can decode codec through Media
+// Source Extensions everywhere. H.264 is the only safe choice: H.265 works
+// only on some browsers and hardware.
+func BrowserPlayable(codec string) bool {
+	return strings.HasPrefix(codec, "avc1.") || strings.HasPrefix(codec, "avc3.")
+}
 
 // RunError is a source failure with the tail of FFmpeg's log.
 type RunError struct {
@@ -35,28 +54,43 @@ func (e *RunError) Unwrap() error { return e.Err }
 
 var errStreamEnded = errors.New("stream ended")
 
-// FFmpegArgs repackages the source's H.264 video into fragmented MP4 on
-// stdout without re-encoding. Each fragment starts on a keyframe.
-func FFmpegArgs(url string) []string {
-	return []string{
+// FFmpegArgs builds the FFmpeg command line. By default it repackages the
+// camera's video into fragmented MP4 without re-encoding (near-zero CPU). With
+// opts.Transcode it re-encodes to H.264 tuned for latency, with a keyframe
+// every second so viewers can join quickly. Either way each fragment starts
+// on a keyframe.
+func FFmpegArgs(url string, opts RunOptions) []string {
+	args := []string{
 		"-hide_banner", "-loglevel", "warning", "-nostdin",
 		"-rtsp_transport", "tcp",
 		"-timeout", "5000000", // socket I/O timeout, µs: a dead camera fails fast
 		"-i", url,
-		"-map", "0:v:0",
-		"-c:v", "copy", "-an",
+		"-map", "0:v:0", "-an",
+	}
+	if opts.Transcode {
+		args = append(args,
+			"-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency",
+			"-pix_fmt", "yuv420p",
+			"-vf", "scale='min(1280,iw)':-2", // cap at 720p-class width to bound CPU
+			"-crf", "26", "-maxrate", "2500k", "-bufsize", "5000k",
+			"-force_key_frames", "expr:gte(t,n_forced*1)",
+		)
+	} else {
+		args = append(args, "-c:v", "copy")
+	}
+	return append(args,
 		"-f", "mp4", "-movflags", "frag_keyframe+empty_moov+default_base_moof",
 		"pipe:1",
-	}
+	)
 }
 
 // FFmpegRunner runs the ffmpeg binary at path.
 func FFmpegRunner(path string) Runner {
-	return func(parent context.Context, url string, onSegment func(mp4.Segment)) error {
+	return func(parent context.Context, url string, opts RunOptions, onSegment func(mp4.Segment) error) error {
 		ctx, cancel := context.WithCancel(parent)
 		defer cancel()
 
-		cmd := exec.CommandContext(ctx, path, FFmpegArgs(url)...)
+		cmd := exec.CommandContext(ctx, path, FFmpegArgs(url, opts)...)
 		cmd.WaitDelay = 2 * time.Second
 		stderr := &tailWriter{max: 20}
 		cmd.Stderr = stderr
@@ -69,14 +103,22 @@ func FFmpegRunner(path string) Runner {
 		}
 
 		seg := mp4.NewSegmenter(stdout)
-		var readErr error
+		var readErr, handlerErr error
 		for {
 			s, err := seg.Next()
 			if err != nil {
 				readErr = err
 				break
 			}
-			onSegment(s)
+			if handlerErr = onSegment(s); handlerErr != nil {
+				break
+			}
+		}
+		if handlerErr != nil {
+			cancel()
+			_, _ = io.Copy(io.Discard, stdout)
+			_ = cmd.Wait()
+			return handlerErr
 		}
 		// FFmpeg dying mid-write truncates the last box; that's a source
 		// failure, not bad output.
@@ -136,6 +178,8 @@ func Classify(err error) (msg string, permanent bool) {
 		return "Camera host not found", true
 	case strings.Contains(log, "no route to host"), strings.Contains(log, "network is unreachable"):
 		return "Camera network unreachable", false
+	case strings.Contains(log, "unknown encoder"), strings.Contains(log, "encoder not found"):
+		return "Server cannot transcode this camera's video", true
 	case strings.Contains(log, "does not contain any stream"), strings.Contains(log, "matches no streams"):
 		return "Stream has no video track", true
 	case strings.Contains(log, "invalid data found"):

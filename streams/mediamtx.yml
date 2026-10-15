@@ -22,3 +22,6 @@ paths:
   cam3:
     runOnInit: sh /opt/streams/publish.sh
     runOnInitRestart: yes
+  cam4: # H.265
+    runOnInit: sh /opt/streams/publish.sh
+    runOnInitRestart: yes

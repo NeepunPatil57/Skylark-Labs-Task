@@ -35,8 +35,9 @@ function save(list: WallStream[]): void {
   }
 }
 
+/** Hides the password and the query string (often an access token). */
 export function maskUrl(url: string): string {
-  return url.replace(/^(rtsps?:\/\/[^:/@]+):[^@/]*@/i, '$1:•••@')
+  return url.replace(/^(rtsps?:\/\/[^:/@]+):[^@/]*@/i, '$1:xxxxx@').replace(/\?.*$/, '?xxxxx')
 }
 
 /** Mirrors the backend's checks so most mistakes are caught before a request. */
@@ -100,7 +101,8 @@ export function useStreams() {
       if (streamsRef.current.some((s) => s.id === info.id || s.url === url)) {
         throw new ApiError('This stream is already on your wall')
       }
-      update((list) => [...list, { url, name: info.name, id: info.id, displayUrl: info.url }])
+      // Prefer the name typed here: the server keeps the first name it saw for a URL.
+      update((list) => [...list, { url, name: name.trim() || info.name, id: info.id, displayUrl: info.url }])
     },
     [update],
   )

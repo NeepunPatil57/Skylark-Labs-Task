@@ -3,6 +3,7 @@ package stream
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"strings"
 	"sync"
@@ -30,13 +31,16 @@ const (
 
 // Info is the public view of a stream. URL never contains credentials.
 type Info struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	URL     string `json:"url"`
-	State   State  `json:"state"`
-	Error   string `json:"error,omitempty"`
-	Codec   string `json:"codec,omitempty"`
-	Viewers int    `json:"viewers"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	URL   string `json:"url"`
+	State State  `json:"state"`
+	Error string `json:"error,omitempty"`
+	Codec string `json:"codec,omitempty"`
+	// Transcoding is true when the camera's codec isn't browser-playable and
+	// the server re-encodes it to H.264.
+	Transcoding bool `json:"transcoding"`
+	Viewers     int  `json:"viewers"`
 }
 
 // Stream owns one RTSP source. It pulls the source only while someone is
@@ -56,6 +60,7 @@ type Stream struct {
 	state     State
 	errMsg    string
 	codec     string
+	transcode bool // sticky: set once the source's codec proves unplayable
 	viewers   int
 	gen       int // increments per run, so a stopping run can't clobber a newer one
 	cancelRun context.CancelFunc
@@ -70,7 +75,7 @@ func (s *Stream) Info() Info {
 	defer s.mu.Unlock()
 	return Info{
 		ID: s.id, Name: s.name, URL: s.safeURL,
-		State: s.state, Error: s.errMsg, Codec: s.codec, Viewers: s.viewers,
+		State: s.state, Error: s.errMsg, Codec: s.codec, Transcoding: s.transcode, Viewers: s.viewers,
 	}
 }
 
@@ -169,22 +174,34 @@ func (s *Stream) run(ctx context.Context, gen int) {
 		// On retries the failure state and message stay visible until video
 		// flows again.
 		gotVideo := false
-		err := s.runner(ctx, s.url, func(seg mp4.Segment) {
+		opts := RunOptions{Transcode: s.transcoding()}
+		err := s.runner(ctx, s.url, opts, func(seg mp4.Segment) error {
 			if !s.current(gen) {
-				return
+				return nil
 			}
 			if seg.Init {
-				s.onInit(gen, seg)
-				return
+				if !opts.Transcode && !BrowserPlayable(seg.Codec) {
+					return ErrNeedsTranscode
+				}
+				s.onInit(gen, seg, opts.Transcode)
+				return nil
 			}
 			if !gotVideo {
 				gotVideo = true
 				s.setState(gen, StateLive, "")
 			}
 			s.hub.Publish(hub.Message{Data: seg.Data})
+			return nil
 		})
 		if ctx.Err() != nil {
 			return
+		}
+		if errors.Is(err, ErrNeedsTranscode) {
+			log.Printf("stream %s: source codec is not browser-playable, transcoding to H.264", s.id)
+			s.mu.Lock()
+			s.transcode = true
+			s.mu.Unlock()
+			continue
 		}
 
 		msg, permanent := Classify(err)
@@ -212,8 +229,14 @@ func (s *Stream) run(ctx context.Context, gen int) {
 	}
 }
 
-func (s *Stream) onInit(gen int, seg mp4.Segment) {
-	codecMsg, _ := json.Marshal(map[string]string{"type": "init", "codec": seg.Codec})
+func (s *Stream) transcoding() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.transcode
+}
+
+func (s *Stream) onInit(gen int, seg mp4.Segment, transcoding bool) {
+	codecMsg, _ := json.Marshal(map[string]any{"type": "init", "codec": seg.Codec, "transcoding": transcoding})
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.gen != gen {

@@ -1,5 +1,5 @@
 services:
-  # Test RTSP cameras: rtsp://localhost:8554/cam1, cam2, cam3
+  # Test RTSP cameras: rtsp://localhost:8554/cam1, cam2, cam3 (H.264), cam4 (H.265)
   mediamtx:
     build: ./streams
     image: skylark-rtsp/streams:dev
