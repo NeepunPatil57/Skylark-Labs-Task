@@ -1,0 +1,8 @@
+.git
+**/node_modules
+frontend
+backend/bin
+*.exe
+PLAN.md
+.env
+.env.*
