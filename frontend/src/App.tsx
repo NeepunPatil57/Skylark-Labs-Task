@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AddStreamForm } from './components/AddStreamForm'
 import { StreamTile } from './components/StreamTile'
-import { chip } from './components/ui'
+import { caption, chip } from './components/ui'
 import { mseSupported } from './player/msePlayer'
 import { useStreams } from './useStreams'
 
@@ -63,10 +63,10 @@ export default function App() {
 
   return (
     <div>
-      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-line bg-panel px-4 py-4.5 md:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 border-b border-line px-4 py-4.5 md:px-6">
         <div>
-          <h1 className="text-[26px] leading-tight font-bold tracking-[0.01em] font-stretch-[72%]">Camera wall</h1>
-          <p className="text-[13px] text-muted">
+          <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em]">RTSP Stream Viewer</h1>
+          <p className={`${caption} mt-1`}>
             {streams.length === 0 ? 'No cameras yet' : `${streams.length} camera${streams.length === 1 ? '' : 's'}`}
           </p>
         </div>
@@ -75,7 +75,7 @@ export default function App() {
 
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2.5 px-4 py-2.5 text-[13px] md:px-6">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-muted">Test cameras</span>
+          <span className={`${caption} mr-1`}>Test cameras</span>
           {TEST_CAMERAS.map((cam) => (
             <button
               key={cam.url}
@@ -95,14 +95,14 @@ export default function App() {
           )}
         </div>
         <div className="hidden flex-wrap items-center gap-1.5 md:flex" role="radiogroup" aria-label="Columns">
-          <span className="mr-1 text-muted">Columns</span>
+          <span className={`${caption} mr-1`}>Columns</span>
           {LAYOUTS.map((l) => (
             <button
               key={l}
               type="button"
               role="radio"
               aria-checked={layout === l}
-              className={`${chip} min-w-8.5 tabular-nums aria-checked:border-accent aria-checked:text-accent`}
+              className={`${chip} min-w-8.5 tabular-nums aria-checked:border-accent aria-checked:bg-accent/10 aria-checked:text-ink`}
               onClick={() => chooseLayout(l)}
             >
               {l === 'auto' ? 'Auto' : l}
@@ -120,7 +120,7 @@ export default function App() {
       <main className={`grid min-h-[calc(100vh-160px)] content-start gap-1 bg-field p-1 ${gridColumns[layout]}`}>
         {streams.length === 0 ? (
           <div className="col-span-full mx-auto my-[12vh] max-w-[46ch] px-4 text-center">
-            <h2 className="mb-2 text-[22px] font-semibold font-stretch-[80%]">Add a camera to start watching</h2>
+            <h2 className="mb-2 text-[22px] font-semibold tracking-[-0.01em]">Add a camera to start watching</h2>
             <p className="text-muted">
               Paste an <code>rtsp://</code> address above, or add one of the test cameras. Each stream plays live in
               its own tile.

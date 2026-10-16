@@ -12,9 +12,9 @@ interface Props {
 
 // Full class names so Tailwind can find them.
 const tones: Record<PlayerState['phase'], { text: string; bg: string }> = {
-  connecting: { text: 'text-warn', bg: 'bg-warn' },
-  live: { text: 'text-live', bg: 'bg-live' },
-  reconnecting: { text: 'text-warn', bg: 'bg-warn' },
+  connecting: { text: 'text-ink', bg: 'bg-warn' },
+  live: { text: 'text-ink', bg: 'bg-live' },
+  reconnecting: { text: 'text-ink', bg: 'bg-warn' },
   error: { text: 'text-error', bg: 'bg-error' },
   paused: { text: 'text-muted', bg: 'bg-muted' },
 }
@@ -86,7 +86,7 @@ export function StreamTile({ stream, onRemove, onRetryRegister }: Props) {
   return (
     <article
       ref={tileRef}
-      className="group relative aspect-video overflow-hidden rounded-[3px] bg-black [&:fullscreen]:aspect-auto [&:fullscreen]:rounded-none"
+      className="group @container relative aspect-video overflow-hidden rounded-[3px] bg-black [&:fullscreen]:aspect-auto [&:fullscreen]:rounded-none"
     >
       <video
         ref={videoRef}
@@ -114,50 +114,53 @@ export function StreamTile({ stream, onRemove, onRetryRegister }: Props) {
         </div>
       )}
 
-      {/* Controls top-right; shown on hover, focus, touch, or when not live. */}
-      <div
-        className={`absolute top-2 right-2 z-10 flex gap-1.5 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 ${phase === 'live' ? 'opacity-0' : ''}`}
-      >
-        <button
-          type="button"
-          className={iconButton}
-          onClick={() => setUserPaused((p) => !p)}
-          aria-label={userPaused ? `Play ${stream.name}` : `Pause ${stream.name}`}
-          disabled={!stream.id}
-        >
-          {userPaused ? <PlayIcon /> : <PauseIcon />}
-        </button>
-        <button type="button" className={iconButton} onClick={toggleFullscreen} aria-label={`Fullscreen ${stream.name}`}>
-          <FullscreenIcon />
-        </button>
-        <button
-          type="button"
-          className={`${iconButton} enabled:hover:border-error enabled:hover:bg-error`}
-          onClick={onRemove}
-          aria-label={`Remove ${stream.name}`}
-        >
-          <RemoveIcon />
-        </button>
-      </div>
-
-      {/* Labels sit at the bottom: cameras burn their own name and clock into
-          the top corners. */}
-      <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-3 bg-linear-to-t from-black/70 to-transparent px-3 pt-8 pb-2.5 font-stretch-[68%] [text-shadow:0_1px_2px_rgb(0_0_0/0.8)]">
+      {/* Labels and controls sit at the bottom: cameras burn their own name and
+          clock into the top corners. */}
+      <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 @min-[30rem]:grid-cols-[minmax(0,1fr)_auto_1fr] bg-linear-to-t from-black/70 to-transparent px-3 pt-8 pb-2.5 [text-shadow:0_1px_2px_rgb(0_0_0/0.8)]">
         <div className="min-w-0">
-          <h2 className="truncate text-[17px] leading-tight font-semibold tracking-wide">{stream.name}</h2>
-          <p className="truncate text-[13px] text-[#c0cad5]">{stream.displayUrl}</p>
+          <h2 className="truncate text-[15px] leading-tight font-semibold">{stream.name}</h2>
+          <p className="pointer-events-auto mt-0.5 truncate font-mono text-[11px] text-white/65" title={stream.displayUrl}>
+            {stream.displayUrl}
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        {/* Controls stay clear of the clock cameras burn into the top corners:
+            bottom-centre on wide tiles, just above the status pills on narrow
+            ones. Shown on hover, focus, touch, or when not live. */}
+        <div
+          className={`pointer-events-auto absolute right-3 bottom-full flex gap-1.5 [text-shadow:none] transition-opacity @min-[30rem]:static duration-150 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100 ${phase === 'live' ? 'opacity-0' : ''}`}
+        >
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => setUserPaused((p) => !p)}
+            aria-label={userPaused ? `Play ${stream.name}` : `Pause ${stream.name}`}
+            disabled={!stream.id}
+          >
+            {userPaused ? <PlayIcon /> : <PauseIcon />}
+          </button>
+          <button type="button" className={iconButton} onClick={toggleFullscreen} aria-label={`Fullscreen ${stream.name}`}>
+            <FullscreenIcon />
+          </button>
+          <button
+            type="button"
+            className={`${iconButton} enabled:hover:border-error enabled:hover:bg-error`}
+            onClick={onRemove}
+            aria-label={`Remove ${stream.name}`}
+          >
+            <RemoveIcon />
+          </button>
+        </div>
+        <div className="flex items-center justify-end gap-1.5">
           {state.transcoding && (
             <span
-              className="rounded-full bg-black/55 px-2.5 py-0.5 text-sm font-semibold tracking-wider text-accent [text-shadow:none]"
+              className={`${pill} px-2.5 text-accent`}
               title="This camera sends video browsers can’t play, so the server converts it to H.264. Uses more server CPU."
             >
               Transcoded
             </span>
           )}
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black/55 py-0.5 pr-2.5 pl-2 text-sm font-semibold tracking-wider [text-shadow:none] ${tone.text}`}
+            className={`${pill} inline-flex shrink-0 items-center gap-1.5 pr-2.5 pl-2 ${tone.text}`}
             role="status"
           >
             <span
@@ -172,8 +175,12 @@ export function StreamTile({ stream, onRemove, onRetryRegister }: Props) {
   )
 }
 
+// Solid enough to stay readable over bright video.
+const pill =
+  'rounded-full border border-white/10 bg-black/80 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[0.14em] backdrop-blur-sm [text-shadow:none]'
+
 const iconButton =
-  'grid size-8.5 cursor-pointer place-items-center rounded-md border border-white/20 bg-panel shadow-md shadow-black/40 enabled:hover:bg-line disabled:cursor-default disabled:opacity-40'
+  'grid size-8.5 cursor-pointer place-items-center rounded-md border border-white/15 bg-black/80 shadow-md shadow-black/40 backdrop-blur-sm enabled:hover:bg-line disabled:cursor-default disabled:opacity-40'
 
 const iconProps = { width: 18, height: 18, viewBox: '0 0 24 24', 'aria-hidden': true } as const
 

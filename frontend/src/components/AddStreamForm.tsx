@@ -1,6 +1,6 @@
 import { useId, useState, type SubmitEvent } from 'react'
 import { ApiError } from '../api'
-import { control, primaryButton } from './ui'
+import { caption, control, primaryButton } from './ui'
 import { validateUrl } from '../useStreams'
 
 interface Props {
@@ -38,7 +38,7 @@ export function AddStreamForm({ onAdd }: Props) {
     <form className="max-w-220 flex-[1_1_560px]" onSubmit={submit} noValidate>
       <div className="grid items-end gap-2.5 md:grid-cols-[minmax(0,1fr)_minmax(0,200px)_auto]">
         <label className="grid gap-1">
-          <span className="text-xs text-muted">Stream URL</span>
+          <span className={caption}>Stream URL</span>
           <input
             type="text"
             className={control}
@@ -56,7 +56,7 @@ export function AddStreamForm({ onAdd }: Props) {
           />
         </label>
         <label className="grid gap-1">
-          <span className="text-xs text-muted">Name (optional)</span>
+          <span className={caption}>Name (optional)</span>
           <input
             type="text"
             className={control}
