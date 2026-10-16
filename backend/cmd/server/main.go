@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,11 +21,19 @@ func main() {
 	addr := ":" + envOr("PORT", "8080")
 	origins := api.ParseOrigins(envOr("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"))
 
-	manager := stream.NewManager(stream.Options{
+	opts := stream.Options{
 		Runner:      stream.FFmpegRunner(envOr("FFMPEG_PATH", "ffmpeg")),
 		MaxStreams:  envInt("MAX_STREAMS", 16),
 		IdleTimeout: time.Duration(envInt("IDLE_TIMEOUT_SECONDS", 30)) * time.Second,
-	})
+	}
+	// On a public server, stop users pointing FFmpeg at internal addresses.
+	// Off by default so local cameras on the LAN work in development.
+	if envBool("BLOCK_PRIVATE_URLS") {
+		allow := splitList(envOr("ALLOWED_STREAM_HOSTS", "localhost:8554"))
+		opts.CheckURL = stream.NewURLGuard(allow, nil).Check
+		log.Printf("blocking private stream URLs (allowed: %s)", strings.Join(allow, ", "))
+	}
+	manager := stream.NewManager(opts)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -83,4 +92,26 @@ func envInt(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func envBool(key string) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return false
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		log.Printf("ignoring invalid %s=%q, using false", key, v)
+	}
+	return b
+}
+
+func splitList(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

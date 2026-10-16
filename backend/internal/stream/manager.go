@@ -25,6 +25,9 @@ type Options struct {
 	Runner      Runner
 	MaxStreams  int
 	IdleTimeout time.Duration // how long a source keeps running with no viewers
+	// CheckURL, if set, can reject a valid URL before it is added (see
+	// URLGuard). It runs outside the manager lock since it may do DNS.
+	CheckURL func(*url.URL) error
 }
 
 type Manager struct {
@@ -46,6 +49,11 @@ func (m *Manager) Add(rawURL, name string) (info Info, created bool, err error) 
 	u, err := ValidateURL(rawURL)
 	if err != nil {
 		return Info{}, false, err
+	}
+	if m.opts.CheckURL != nil {
+		if err := m.opts.CheckURL(u); err != nil {
+			return Info{}, false, err
+		}
 	}
 	id := streamID(u)
 
